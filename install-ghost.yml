@@ -1,0 +1,33 @@
+---
+- name: ghost
+  hosts: ghost-server
+  remote_user: root
+  become: true
+  tasks:
+    - name: Update APT Package repository cache
+      apt:
+         update_cache: True
+    - name: install nodejs
+      ansible.builtin.shell: curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
+    - name: install node
+      apt:
+        name: nodejs
+        state: latest
+    - name: install ghost
+      npm:
+        name: ghost-cli
+        global: yes
+    - name: Add the user hcflores
+      ansible.builtin.user:
+       name: hcflores
+       shell: /bin/bash
+       groups: sudo
+       append: yes
+       password: "{{ '1212' | password_hash('sha512') }}"
+    - name: create directory
+      file:
+        path: /var/www/ghost
+        state: directory
+        owner: hcflores
+        group: hcflores
+        mode: 0775

@@ -1,0 +1,21 @@
+---
+- name: sample book
+  hosts: nginx-server
+  remote_user: root
+  become: true
+  tasks:
+    - name: Update APT Package repository cache
+      apt:
+         update_cache: True
+    - name: install nginx
+      apt:
+        name: nginx
+        state: latest
+    - name: name in file
+      lineinfile:
+        path: /etc/nginx/sites-enabled/default
+        regexp: '^\s+try_files \$uri \$uri/ =404;$'
+        line: "	 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+         proxy_set_header X-Forwarded-Proto $scheme;
+         proxy_set_header Host $http_host;
+         proxy_pass http://{{ groups['ghost-server'][0] }}:2368;"

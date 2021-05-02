@@ -1,0 +1,59 @@
+- name: mysql
+  hosts: mysql-server
+  remote_user: hector
+  become: true
+  tasks:
+    - name: Update APT Package repository cache
+      apt:
+         update_cache: True
+    - name: Install LAMP Packages
+      apt: name={{ item }} update_cache=yes state=latest
+      become: true
+      loop: [ 'mysql-server' ]
+    - name: Install MySQL client on Ubuntu 20.04 LTS
+      apt:
+         name: mysql-client
+         state: present
+    - name: Make sure mysql service is running
+      service:
+         name: mysql
+         state: started
+         enabled: True
+    - name: Install python3-pymysql library
+      apt:
+         name: python3-pymysql
+         state: present
+    - name: Change the authentication plugin of MySQL root user to mysql_native_password
+      shell: mysql -u root -e 'UPDATE mysql.user SET plugin="mysql_native_password" WHERE user="root" AND host="localhost"'
+    - name: Flush Privileges
+      shell: mysql -u root -e 'FLUSH PRIVILEGES'
+    - name: Create database user with password and all database privileges and 'WITH GRANT OPTION'
+      community.mysql.mysql_user:
+        host: '%'
+        name: ghost
+        password: password
+        priv: '*.*:ALL,GRANT'
+        state: present
+    - name: Create a new database with name ghost_prod
+      community.mysql.mysql_db:
+        name: ghost_prod
+        state: present
+    - name: Uncommenting port 3306
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: '^# port\s+= 3306$'
+        line: "port = 3306"
+    - name: Setting 0.0.0.0
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: '^bind-address\s+= 127\.0\.0\.1$'
+        line: "bind-address            = 0.0.0.0"
+    - name: Setting 0.0.0.0 mysqlx
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: '^mysqlx-bind-address\s+= 127\.0\.0\.1$'
+        line: "mysqlx-bind-address     = 0.0.0.0"
+    - name: Restart service mysql, in all cases
+      ansible.builtin.service:
+       name: mysql
+       state: restarted

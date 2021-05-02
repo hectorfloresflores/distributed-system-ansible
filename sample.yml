@@ -1,0 +1,10 @@
+---
+- name: sample book
+  hosts: mysql-server
+  remote_user: root
+  become: true
+  tasks:
+    - name: Restart service mysql, in all cases
+      ansible.builtin.service:
+       name: mysql
+       state: restarted
